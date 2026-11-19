@@ -141,6 +141,74 @@ a.skip:focus{top:12px}
 #tip .x:hover{background:var(--card-h);color:var(--ink)}
 #tip .x:focus-visible{outline:2px solid var(--ring)}
 
+
+/* ---- two-floor redesign ---- */
+.top{margin-bottom:20px}
+.top .stats{margin:0;flex:1 1 480px;max-width:620px;gap:10px}
+.top .stat{padding:10px 14px;gap:10px;border-radius:14px}.top .stat .n{font-size:22px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.campus{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:26px;align-items:end;margin:0 0 34px}
+.bcol,.acol{min-width:0}
+.roof.small .sign{font-size:11px;padding:7px 18px;letter-spacing:.2em}
+.roof.small .mast{height:14px}
+.building.annex{grid-template-columns:minmax(0,1fr);border-radius:18px}
+.annex .floors{grid-column:1}
+.annex .room{border-right:0}
+.annex .desks{grid-template-columns:1fr}
+.floor.main-floor{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
+.main-floor .room{min-width:0;border-bottom:1px solid var(--ln)}
+.room h3{min-height:40px}
+.room h3 .rn{white-space:nowrap}
+.room h3 .decor{margin-left:auto;width:64px;height:40px;flex:0 0 64px;opacity:.95}
+.room h3 small{margin-left:0}
+.desks{grid-template-columns:repeat(auto-fill,minmax(172px,1fr))}
+.fl-tag{top:14px}
+
+/* bot tile: scene on top, text below */
+.t{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px 12px}
+.t .av.scene{flex:none;width:100%;max-width:156px;height:auto;margin:0 auto}
+.t .av.scene svg{width:100%;height:auto}
+.s-error .av.scene{animation:none}.s-error .av.scene .headg{animation:shake 1.6s ease-in-out infinite}
+.t .tk{-webkit-line-clamp:3}
+
+/* penthouse: big Rowan */
+.floor.penthouse{background:linear-gradient(120deg,color-mix(in srgb,#ff4d5e 9%,transparent),transparent 60%)}
+.t.big{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center;gap:30px;width:100%;padding:22px 30px;border-radius:0;border:0;background:transparent;box-shadow:none}
+.t.big:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--sc) 5%,transparent)}
+.t.big.on{background:color-mix(in srgb,var(--sc) 10%,transparent)}
+.t.big .av.scene{max-width:430px;width:100%;margin:0;border-radius:20px;box-shadow:var(--shadow-lg)}
+.t.big .tx{gap:10px}
+.t.big .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mu)}
+.t.big .nm{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.t.big .chip{font-size:13.5px;padding:3px 12px 3px 10px}
+.t.big .tk{display:block;-webkit-line-clamp:none;font-size:16.5px;line-height:1.5;color:var(--ink);max-width:34ch}
+.rhead{transform-box:fill-box;transform-origin:50% 100%;animation:bob 4.5s ease-in-out infinite}
+.steam{animation:blinkdot 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg) translateY(-1px)}}
+
+@media (max-width:1100px){
+  .campus{grid-template-columns:1fr;gap:30px}
+  .acol{max-width:420px}
+}
+@media (max-width:980px){
+  .floor.main-floor{display:block}
+  .main-floor .room{border-right:0;border-bottom:1px solid var(--ln)!important}
+  .main-floor .room:last-child{border-bottom:0!important}
+  .t.big{grid-template-columns:1fr;gap:16px;padding:20px 18px}
+  .t.big .av.scene{max-width:460px;margin:0 auto}
+}
+@media (max-width:640px){
+  .top .stats{flex-basis:100%;max-width:none}
+  .t{flex-direction:row;align-items:center;gap:12px}
+  .t .av.scene{flex:0 0 118px;width:118px;margin:0}
+  .t .tx{flex:1}
+  .t.big{display:grid;grid-template-columns:minmax(0,1fr);padding:14px 12px 18px}
+  .t.big .nm{font-size:27px}
+  .t.big .tk{font-size:15px}
+  .room h3 .decor{width:54px;flex-basis:54px}
+  .acol{max-width:none}
+}
+
 @keyframes ping{0%{transform:scale(1);opacity:.55}80%,100%{transform:scale(3);opacity:0}}
 @keyframes blinkdot{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -172,3 +240,40 @@ a.skip:focus{top:12px}
   .roof .sign{padding:7px 16px;letter-spacing:.2em}
 }
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* decor sits top-right of each room; label wraps instead of colliding with it */
+.room h3{padding-right:60px;flex-wrap:wrap;row-gap:2px}
+.room h3 .rn{white-space:normal}
+.room h3 .decor{position:absolute;right:12px;top:8px;margin:0;width:54px;height:34px;flex:none}
+@media (max-width:640px){.room h3 .decor{right:10px;width:50px;height:32px}.room h3{padding-right:62px}}
+
+
+/* ---- right column: Real estate (1F) above the TORKA building (1F), top-aligned with the tower ---- */
+.wrap{max-width:1240px}
+.campus{grid-template-columns:minmax(0,1fr);align-items:start}
+.acol{display:flex;flex-direction:column;min-width:0}
+.roof.ghost{visibility:hidden}
+.acol .building.annex.wing{margin-bottom:0}
+.acol .roof.small{margin-top:20px}
+.annex .desks,.main-floor .desks{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.main-floor .room{border-bottom:1px solid var(--ln)}
+.main-floor .room.end{border-right:0}
+.main-floor .room:last-child{border-bottom:0}
+.room.end{border-right:0}
+.fl-in{display:inline-block;min-width:28px;padding:2px 6px;border-radius:8px;background:var(--card);border:1px solid var(--ln2);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.06em;text-align:center}
+.room:has(.fl-in) h3:before{display:none}
+@media (max-width:1100px){
+  .campus{grid-template-columns:1fr}
+  .acol{max-width:none}
+  .acol .roof.ghost{display:none}
+  .acol .building.annex.wing{margin-top:0}
+}
+@media (max-width:980px){
+  .main-floor .room.end{border-bottom:1px solid var(--ln)}
+}
+.annex .room{flex:1 1 auto;min-width:0;width:100%}
+@media (min-width:1101px){.campus{grid-template-columns:minmax(0,1fr) 384px}}
+.acol .need{margin:26px 0 0}
+.acol .need-grid{grid-template-columns:1fr}
+@media (max-width:1100px){.acol .need{margin-top:30px}}
+@media (max-width:640px){.annex .desks,.main-floor .desks{grid-template-columns:minmax(0,1fr)}.acol .need-grid{grid-template-columns:minmax(0,1fr)}}
