@@ -38,7 +38,11 @@ function avatar(b,uid){
 function chip(b){return '<span class="chip"><i></i>'+esc(LBL[b.state])+'</span>'}
 
 /* ---------- page ---------- */
-var h='<a class="skip" href="#main">Skip to content</a><div class="wrap"><header class="top"><div class="brand"><span class="logo" aria-hidden="true">'+
+var gi=0,ri=0;function desk(b){var i=gi++;return '<button type="button" class="t s-'+b.state+(b.src==='live'?'':' rec')+'" data-i="'+bots.indexOf(b)+'" data-g="'+grp(b.state)+'" aria-label="'+esc(b.name+', '+LBL[b.state]+'. '+b.task)+'">'+avatar(b,i)+'<span class="tx"><span class="nm">'+esc(b.name)+'</span>'+chip(b)+'<span class="tk">'+esc(b.task)+'</span></span></button>'}
+var ph=byTeam['Fleet lead']||[];
+var h='<a class="skip" href="#main">Skip to content</a><div class="wrap">';
+if(ph.length){h+='<section class="floor penthouse" aria-label="Penthouse" style="margin-bottom:18px;border-radius:16px;overflow:hidden"><div class="room r0" style="flex:1 1 0"><h3>Penthouse<small>'+ph.length+'</small></h3><div class="desks">';ph.forEach(function(b){h+=desk(b)});h+='</div></div></section>';ri++}
+h+='<header class="top"><div class="brand"><span class="logo" aria-hidden="true">'+
   '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M10 21v-4h4v4"/></svg></span>'+
   '<div><h1>Fleet Office</h1><div class="sub"><span class="pulse" aria-hidden="true"></span><span>Updated '+esc(D.updated)+'</span></div></div></div></header><main id="main">';
 var stats=[['working','working'],['needs_brian','need the owner'],['error','stuck'],['idle','idle']];
@@ -54,17 +58,16 @@ need.forEach(function(b,k){
 });
 h+='</div></section>';
 
-h+='<section aria-labelledby="tower-h"><div class="sec-h"><h2 id="tower-h">The tower</h2><span>Tap a bot for details</span></div><div class="tower"><div class="roof"><div class="sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V8l6-5 6 5v13"/></svg>FLEET HQ</div><div class="mast" aria-hidden="true"></div></div>'+
+h+='<section aria-labelledby="tower-h"><div class="sec-h"><h2 id="tower-h">The tower</h2><span>Tap a bot for details</span></div><div class="tower"><div class="roof"><div class="sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V8l6-5 6 5v13"/></svg>BOT CENTRAL</div><div class="mast" aria-hidden="true"></div></div>'+
   '<div class="building"><div class="shaft" aria-hidden="true"><div class="cab"></div></div><div class="floors">';
-var ri=0,gi=0,total=D.floors.length;
+var total=D.floors.length;
 D.floors.forEach(function(f,fi){
   h+='<section class="floor" aria-label="'+esc(f.name)+'"><span class="fl-tag" aria-hidden="true"><b>'+(total-fi)+'F</b></span>';
   f.rooms.forEach(function(r){
     var list=byTeam[r.team]||[];
     h+='<div class="room r'+(ri%6)+'" style="flex:'+Math.max(1,Math.min(list.length,6))+' 1 0"><h3>'+esc(r.label)+'<small>'+list.length+'</small></h3><div class="desks">';
     list.forEach(function(b){
-      var i=gi++;
-      h+='<button type="button" class="t s-'+b.state+(b.src==='live'?'':' rec')+'" data-i="'+bots.indexOf(b)+'" data-g="'+grp(b.state)+'" aria-label="'+esc(b.name+', '+LBL[b.state]+'. '+b.task)+'">'+avatar(b,i)+'<span class="tx"><span class="nm">'+esc(b.name)+'</span>'+chip(b)+'<span class="tk">'+esc(b.task)+'</span></span></button>';
+      h+=desk(b);
     });
     h+='</div></div>';ri++;
   });
