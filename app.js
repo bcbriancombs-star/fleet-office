@@ -55,30 +55,49 @@ var I={
 };
 function ico(k){return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(I[k]||I.hub)+'</svg>'}
 
+
 var need=bots.filter(function(b){return b.state==='needs_brian'||b.state==='error'});
+var DEPT=D.tabs,BASE_MOVES=D.moves||{};
 var T=[{id:'all',label:'All',icon:'all',list:bots,n:bots.length}];
-D.tabs.forEach(function(t){var l=byTeam[t.team]||[];T.push({id:t.id,label:t.label,icon:t.id,list:l,n:l.length,team:t.team})});
+DEPT.forEach(function(t){T.push({id:t.id,label:t.label,icon:t.id,list:[],n:0,team:t.team,dept:true})});
 T.push({id:'needs-owner',label:'Needs the owner',icon:'need',list:need,n:need.length,warn:need.length>0});
 var byId={};T.forEach(function(t){byId[t.id]=t});
 
-var uidN=0,stat=null;
+/* ---------- moves (saved in this browser; override the built-in layout) ---------- */
+var STORE='botcentral.moves',mem={};
+function loadMoves(){try{var j=JSON.parse(localStorage.getItem(STORE)||'{}');return(j&&typeof j==='object'&&!Array.isArray(j))?j:{}}catch(e){return JSON.parse(JSON.stringify(mem))}}
+function saveMoves(m){mem=JSON.parse(JSON.stringify(m));try{if(Object.keys(m).length)localStorage.setItem(STORE,JSON.stringify(m));else localStorage.removeItem(STORE)}catch(e){}}
+function deptOf(x){var k=String(x).toLowerCase(),r=null;DEPT.forEach(function(t){if(t.label.toLowerCase()===k||t.team.toLowerCase()===k||t.id===k)r=t});return r}
+var names={};bots.forEach(function(b){names[b.name]=1;b.team0=b.team});
+var moves=loadMoves();
+(function(){var c={};Object.keys(moves).forEach(function(n){var d=deptOf(moves[n]);if(names[n]&&d&&d.team!==bots.filter(function(b){return b.name===n})[0].team0)c[n]=d.label});moves=c})();
+var byTeam={};
+function apply(){
+  byTeam={};
+  bots.forEach(function(b){var d=moves[b.name]?deptOf(moves[b.name]):null;b.team=d?d.team:b.team0;b.moved=!!d;(byTeam[b.team]=byTeam[b.team]||[]).push(b)});
+  T.forEach(function(t){if(t.dept){t.list=byTeam[t.team]||[];t.n=t.list.length}});
+}
+apply();
+
+var uidN=0,stat=null,dragName=null;
 function card(b){
   var u=uidN++,isR=(b.team==='Fleet lead'),av;
   av=isR?'<span class="av rw" aria-hidden="true"><img src="'+ROWAN_IMG+'" alt="" width="48" height="48"></span>':avatar(b,u);
-  return '<article class="card s-'+b.state+(b.src==='live'?'':' rec')+'" data-g="'+grp(b.state)+'">'+av+
+  return '<article class="card s-'+b.state+(b.src==='live'?'':' rec')+(b.moved?' moved':'')+'" draggable="true" data-n="'+esc(b.name)+'" data-g="'+grp(b.state)+'">'+av+
     '<div class="cb"><div class="ch"><h3>'+esc(b.name)+'</h3>'+chip(b)+'</div><p class="tk">'+esc(b.task)+'</p>'+
-    '<div class="wh">'+esc(b.when)+(b.src==='live'?'':' · from records')+'</div></div></article>';
+    '<div class="wh"><span>'+esc(b.when)+(b.src==='live'?'':' · from records')+(b.moved?' · moved by you':'')+'</span>'+
+    '<button type="button" class="mvb" data-mv="'+esc(b.name)+'" aria-haspopup="dialog" aria-label="Move '+esc(b.name)+' to another department">Move to…</button></div></div></article>';
 }
 function grid(list){return '<div class="cards">'+list.map(card).join('')+'</div>'}
 function panelHtml(t){
   if(t.id==='all'){
     var out='',seen={};
-    D.tabs.forEach(function(x){var l=byTeam[x.team]||[];if(!l.length)return;seen[x.team]=1;
-      out+='<section class="grp"><h2><a href="#'+x.id+'">'+esc(x.label)+'</a><span>'+l.length+'</span></h2>'+grid(l)+'</section>'});
+    DEPT.forEach(function(x){var l=byTeam[x.team]||[];seen[x.team]=1;
+      out+='<section class="grp" data-dept="'+x.id+'"><h2><a href="#'+x.id+'">'+esc(x.label)+'</a><span>'+l.length+'</span></h2>'+(l.length?grid(l):'<p class="empty small">Drop a bot here</p>')+'</section>'});
     Object.keys(byTeam).forEach(function(k){if(seen[k])return;out+='<section class="grp"><h2>Other<span>'+byTeam[k].length+'</span></h2>'+grid(byTeam[k])+'</section>'});
     return out;
   }
-  if(!t.list.length)return '<p class="empty">'+(t.id==='needs-owner'?'Nothing needs the owner right now.':'No bots in this department yet.')+'</p>';
+  if(!t.list.length)return '<p class="empty">'+(t.id==='needs-owner'?'Nothing needs the owner right now.':'No bots here yet. Drag a card onto this tab, or use “Move to…” on a card.')+'</p>';
   return (t.id==='needs-owner'?'<p class="lead">Bots that are waiting on the owner or are stuck.</p>':'')+grid(t.list);
 }
 
@@ -90,11 +109,14 @@ h+='<section class="stats" aria-label="Fleet summary (select to highlight)">';
 stats.forEach(function(s){h+='<button type="button" class="stat k-'+s[0]+'" data-f="'+s[0]+'" aria-pressed="false"><span class="dot"></span><span class="n">'+cnt[s[0]]+'</span><span class="l">'+s[1]+'</span></button>'});
 h+='</section></header>';
 h+='<nav class="tabs" aria-label="Departments"><div class="tablist" role="tablist">';
-T.forEach(function(t){h+='<a class="tab'+(t.warn?' warn':'')+'" role="tab" id="tab-'+t.id+'" href="#'+t.id+'" aria-controls="panel" aria-selected="false" tabindex="-1">'+ico(t.icon)+'<span class="lb">'+esc(t.label)+'</span><span class="ct">'+t.n+'</span></a>'});
-h+='</div></nav><main id="panel" class="panel" role="tabpanel" tabindex="-1"></main></div>';
+T.forEach(function(t){h+='<a class="tab'+(t.warn?' warn':'')+(t.dept?' dept':'')+'" role="tab" id="tab-'+t.id+'" href="#'+t.id+'" aria-controls="panel" aria-selected="false" tabindex="-1">'+ico(t.icon)+'<span class="lb">'+esc(t.label)+'</span><span class="ct">'+t.n+'</span></a>'});
+h+='</div></nav><main id="panel" class="panel" role="tabpanel" tabindex="-1"></main>'+
+  '<footer class="foot"><span class="hint">Drag a card onto a tab, or tap “Move to…”. Moves are saved on this device only.</span>'+
+  '<span class="fb"><button type="button" class="lnk" id="exp">Export layout</button><button type="button" class="lnk" id="rst">Reset</button></span></footer></div>'+
+  '<div id="toast" role="status" aria-live="polite"></div><div id="ov" hidden></div>';
 app.innerHTML=h;
 
-var panel=document.getElementById('panel'),tabEls=app.querySelectorAll('.tablist .tab');
+var panel=document.getElementById('panel'),tabEls=app.querySelectorAll('.tablist .tab'),toastEl=document.getElementById('toast'),ov=document.getElementById('ov');
 function curId(){var x=decodeURIComponent((location.hash||'').replace(/^#/,''));return byId[x]?x:'all'}
 function applyStat(){
   panel.classList.toggle('filtering',!!stat);
@@ -103,28 +125,113 @@ function applyStat(){
   var ss=app.querySelectorAll('.stat');
   for(var j=0;j<ss.length;j++)ss[j].setAttribute('aria-pressed',String(ss[j].getAttribute('data-f')===stat));
 }
-function render(){
+function render(keepScroll){
   var id=curId(),t=byId[id];uidN=0;
   panel.innerHTML=panelHtml(t);panel.setAttribute('aria-labelledby','tab-'+id);
   for(var i=0;i<tabEls.length;i++){
-    var on=tabEls[i].id==='tab-'+id;tabEls[i].classList.toggle('on',on);
+    var tid=tabEls[i].id.slice(4),on=tid===id;tabEls[i].classList.toggle('on',on);
+    tabEls[i].querySelector('.ct').textContent=byId[tid].n;
     tabEls[i].setAttribute('aria-selected',String(on));tabEls[i].setAttribute('tabindex',on?'0':'-1');
-    if(on&&tabEls[i].scrollIntoView&&!window.__noScroll){var tl=tabEls[i].parentNode;var l=tabEls[i].offsetLeft-(tl.clientWidth-tabEls[i].offsetWidth)/2;tl.scrollLeft=Math.max(0,l)}
+    if(on&&!keepScroll&&tabEls[i].scrollIntoView){var tl=tabEls[i].parentNode;var l=tabEls[i].offsetLeft-(tl.clientWidth-tabEls[i].offsetWidth)/2;tl.scrollLeft=Math.max(0,l)}
   }
   document.title=(id==='all'?'':t.label+' · ')+'Bot Central';
   applyStat();
 }
-window.addEventListener('hashchange',render);
+var tt=null;
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('on')},3500)}
+function moveBot(name,deptId){
+  var d=byId[deptId];if(!d||!d.dept||!names[name])return false;
+  var b=bots.filter(function(x){return x.name===name})[0];
+  if(b.team===d.team)return false;
+  if(d.team===b.team0)delete moves[name];else moves[name]=d.label;
+  saveMoves(moves);apply();render(true);
+  toast('Moved '+name+' to '+d.label);return true;
+}
+window.addEventListener('hashchange',function(){render()});
 render();
+
+/* ---------- overlay (Move-to menu, export) ---------- */
+var lastFocus=null;
+function openOv(html,focusSel){lastFocus=document.activeElement;ov.innerHTML=html;ov.hidden=false;document.body.classList.add('modal');var f=ov.querySelector(focusSel||'button');f&&f.focus()}
+function closeOv(){ov.hidden=true;ov.innerHTML='';document.body.classList.remove('modal');if(lastFocus&&document.body.contains(lastFocus))lastFocus.focus&&lastFocus.focus();lastFocus=null}
+function moveMenu(name){
+  var b=bots.filter(function(x){return x.name===name})[0];if(!b)return;
+  var s='<div class="bd" data-close="1"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><h2 id="sh-t">Move '+esc(name)+' to…</h2><div class="opts">';
+  DEPT.forEach(function(d){var cur=d.team===b.team;
+    s+='<button type="button" class="opt'+(cur?' cur':'')+'" data-to="'+d.id+'" data-nm="'+esc(name)+'"'+(cur?' aria-current="true"':'')+'>'+ico(d.id)+'<span>'+esc(d.label)+'</span>'+(cur?'<em>current</em>':'')+'</button>'});
+  s+='</div><button type="button" class="cancel" data-close="1">Cancel</button></div>';
+  openOv(s,'.opt:not(.cur)');
+}
+function layoutJson(){var o={};Object.keys(BASE_MOVES).forEach(function(k){o[k]=BASE_MOVES[k]});Object.keys(moves).forEach(function(k){o[k]=moves[k]});
+  return JSON.stringify(o,null,2)}
+function exportSheet(){
+  var j=layoutJson(),n=Object.keys(moves).length;
+  openOv('<div class="bd" data-close="1"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><h2 id="sh-t">Export layout</h2>'+
+    '<p class="lead">'+(n?n+' move'+(n===1?'':'s')+' saved on this device.':'No moves saved on this device yet.')+' Paste this into <code>moves.json</code> and rebuild to make it permanent for everyone.</p>'+
+    '<textarea id="xj" readonly rows="8" spellcheck="false" aria-label="Layout JSON">'+esc(j)+'</textarea>'+
+    '<div class="row"><button type="button" class="opt go" id="cp">Copy</button><button type="button" class="cancel" data-close="1">Close</button></div></div>','#xj');
+}
+function copyText(txt){
+  var x=document.getElementById('xj');
+  if(navigator.clipboard&&navigator.clipboard.writeText){return navigator.clipboard.writeText(txt).then(function(){return true},function(){return fb()})}
+  return Promise.resolve(fb());
+  function fb(){try{x.focus();x.select();return document.execCommand('copy')}catch(e){return false}}
+}
+
+/* ---------- interaction ---------- */
 app.addEventListener('click',function(e){
-  var s=e.target.closest&&e.target.closest('.stat');
-  if(s){var f=s.getAttribute('data-f');stat=(stat===f)?null:f;applyStat()}
+  var el=e.target.closest?e.target:null;if(!el)return;
+  var s=el.closest('.stat');
+  if(s){var f=s.getAttribute('data-f');stat=(stat===f)?null:f;applyStat();return}
+  var m=el.closest('[data-mv]');if(m){moveMenu(m.getAttribute('data-mv'));return}
+  var o=el.closest('.opt[data-to]');if(o){var nm=o.getAttribute('data-nm'),to=o.getAttribute('data-to');closeOv();moveBot(nm,to);return}
+  if(el.closest('#cp')){copyText(document.getElementById('xj').value).then(function(ok){var c=document.getElementById('cp');if(c)c.textContent=ok?'Copied':'Select the text and copy it'});return}
+  if(el.closest('[data-close]')){closeOv();return}
+  if(el.closest('#exp')){exportSheet();return}
+  if(el.closest('#rst')){
+    if(!Object.keys(moves).length){toast('No local moves to reset');return}
+    if(window.confirm('Put every bot back in its original department on this device?')){moves={};saveMoves(moves);apply();render(true);toast('Layout reset')}
+  }
 });
 app.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&!ov.hidden){closeOv();return}
+  if(e.key==='Tab'&&!ov.hidden){var f=ov.querySelectorAll('button,textarea'),first=f[0],last=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}return}
   var t=e.target.closest&&e.target.closest('.tablist .tab');if(!t)return;
   var i=Array.prototype.indexOf.call(tabEls,t),n=-1;
   if(e.key==='ArrowRight')n=(i+1)%tabEls.length;else if(e.key==='ArrowLeft')n=(i-1+tabEls.length)%tabEls.length;
   else if(e.key==='Home')n=0;else if(e.key==='End')n=tabEls.length-1;
   if(n>=0){e.preventDefault();location.hash=tabEls[n].getAttribute('href');tabEls[n].focus()}
 });
+
+/* drag a card onto a department tab (or, on All, onto a department block) */
+var hot=null;
+function targetOf(e){
+  var t=e.target.closest&&e.target.closest('.tablist .tab.dept');if(t)return{el:t,id:t.id.slice(4)};
+  var g=e.target.closest&&e.target.closest('.grp[data-dept]');if(g)return{el:g,id:g.getAttribute('data-dept')};
+  var p=e.target.closest&&e.target.closest('#panel');var c=curId();if(p&&byId[c]&&byId[c].dept)return{el:p,id:c};
+  return null;
+}
+function clearHot(){if(hot){hot.classList.remove('drop');hot=null}}
+function endDrag(){clearHot();dragName=null;document.body.classList.remove('dragging');var d=app.querySelector('.card.dragging');d&&d.classList.remove('dragging')}
+app.addEventListener('dragstart',function(e){
+  var c=e.target.closest&&e.target.closest('.card');if(!c){return}
+  dragName=c.getAttribute('data-n');c.classList.add('dragging');document.body.classList.add('dragging');
+  try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragName)}catch(x){}
+});
+app.addEventListener('dragover',function(e){
+  if(!dragName)return;
+  var tl=e.target.closest&&e.target.closest('.tablist');
+  if(tl){var r=tl.getBoundingClientRect();if(e.clientX<r.left+50)tl.scrollLeft-=14;else if(e.clientX>r.right-50)tl.scrollLeft+=14}
+  var t=targetOf(e);
+  if(!t){clearHot();try{e.dataTransfer.dropEffect='none'}catch(x){}return}
+  e.preventDefault();try{e.dataTransfer.dropEffect='move'}catch(x){}
+  if(hot!==t.el){clearHot();hot=t.el;hot.classList.add('drop')}
+});
+app.addEventListener('dragleave',function(e){if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight)clearHot()});
+app.addEventListener('drop',function(e){
+  if(!dragName)return;var t=targetOf(e);if(!t)return;
+  e.preventDefault();var n=dragName;endDrag();moveBot(n,t.id);
+});
+app.addEventListener('dragend',endDrag);
 })();
